@@ -10,8 +10,8 @@ from feature_engineering import add_derived_features
 
 st.set_page_config(page_title="Max EMI Calculator - EMIPredict AI", page_icon="📈", layout="wide")
 
-st.title("📈 Maximum Monthly EMI Capacity Calculator")
-st.markdown("Precision estimation of an applicant's maximum monthly repayment ceiling using trained regression models.")
+st.title("📈 Maximum Monthly EMI & Loan Affordability Simulator")
+st.markdown("Precision estimation of an applicant's maximum monthly repayment ceiling combined with dynamic loan repayment stress-testing.")
 
 REG_MODEL_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "models", "best_regressor.joblib")
 
@@ -26,29 +26,30 @@ reg_bundle = load_reg_model()
 col1, col2 = st.columns(2)
 
 with col1:
-    st.subheader("Income & Obligations")
+    st.subheader("1. Applicant Financial Profile")
     monthly_salary = st.number_input("Monthly Salary (INR)", min_value=15000.0, max_value=500000.0, value=85000.0, step=5000.0)
-    current_emi = st.number_input("Existing Monthly EMI", min_value=0.0, value=6000.0, step=1000.0)
-    monthly_rent = st.number_input("Rent", min_value=0.0, value=15000.0, step=1000.0)
-    groceries_utilities = st.number_input("Groceries & Utilities", min_value=0.0, value=12000.0, step=1000.0)
-    other_expenses = st.number_input("Other Monthly Expenses", min_value=0.0, value=5000.0, step=500.0)
+    current_emi = st.number_input("Existing Monthly EMI Burden", min_value=0.0, value=6000.0, step=1000.0)
+    monthly_rent = st.number_input("Monthly Rent", min_value=0.0, value=15000.0, step=1000.0)
+    groceries_utilities = st.number_input("Groceries & Utility Bills", min_value=0.0, value=12000.0, step=1000.0)
+    other_expenses = st.number_input("Other Living Expenses", min_value=0.0, value=5000.0, step=500.0)
+    credit_score = st.slider("Credit Score (CIBIL)", min_value=300, max_value=850, value=760)
 
 with col2:
-    st.subheader("Credit & Application Details")
-    credit_score = st.slider("Credit Score", min_value=300, max_value=850, value=760)
-    bank_balance = st.number_input("Current Bank Balance", min_value=0.0, value=250000.0, step=10000.0)
-    emergency_fund = st.number_input("Emergency Savings", min_value=0.0, value=100000.0, step=10000.0)
-    emi_scenario = st.selectbox("Lending Product", [
+    st.subheader("2. Proposed Loan & Stress-Test Simulation")
+    emi_scenario = st.selectbox("Lending Category", [
         "Personal Loan EMI",
         "Vehicle EMI",
         "Home Appliances EMI",
         "E-commerce Shopping EMI",
         "Education EMI"
     ])
-    requested_amount = st.number_input("Requested Loan Amount", min_value=10000.0, value=400000.0, step=10000.0)
-    requested_tenure = st.number_input("Repayment Period (Months)", min_value=6, max_value=84, value=36)
+    requested_amount = st.number_input("Desired Loan Principal (INR)", min_value=10000.0, max_value=2500000.0, value=400000.0, step=10000.0)
+    requested_tenure = st.slider("Loan Tenure (Months)", min_value=6, max_value=84, value=36)
+    annual_interest_rate = st.slider("Expected Annual Interest Rate (%)", min_value=5.0, max_value=24.0, value=11.5, step=0.25)
+    bank_balance = st.number_input("Current Bank Balance", min_value=0.0, value=250000.0, step=10000.0)
+    emergency_fund = st.number_input("Emergency Savings", min_value=0.0, value=100000.0, step=10000.0)
 
-calc_btn = st.button("📊 Calculate Safe EMI Ceiling", use_container_width=True)
+calc_btn = st.button("📊 Calculate Max Safe EMI & Stress Test Loan", use_container_width=True)
 
 if calc_btn:
     if reg_bundle is None:
@@ -86,19 +87,47 @@ if calc_btn:
         pipeline = reg_bundle['pipeline']
         feature_cols = reg_bundle['feature_cols']
 
-        pred_emi = pipeline.predict(df_feat[feature_cols])[0]
-        pred_emi = float(np.clip(pred_emi, 500.0, 50000.0))
+        # Safe Max EMI from AI model
+        pred_max_emi = pipeline.predict(df_feat[feature_cols])[0]
+        pred_max_emi = float(np.clip(pred_max_emi, 500.0, 50000.0))
+
+        # Standard Banking EMI Formula: E = P * r * (1+r)^n / ((1+r)^n - 1)
+        monthly_rate = (annual_interest_rate / 100.0) / 12.0
+        n_months = int(requested_tenure)
+        if monthly_rate > 0:
+            loan_installment = requested_amount * monthly_rate * ((1 + monthly_rate) ** n_months) / (((1 + monthly_rate) ** n_months) - 1)
+        else:
+            loan_installment = requested_amount / n_months
 
         st.markdown("---")
-        m_col1, m_col2, m_col3 = st.columns(3)
-        with m_col1:
-            st.metric("Recommended Max Safe EMI", f"₹{pred_emi:,.2f}")
-        with m_col2:
-            disposable = float(df_feat['disposable_income'].iloc[0])
-            st.metric("Current Disposable Income", f"₹{disposable:,.2f}")
-        with m_col3:
-            dti = float(df_feat['dti_ratio'].iloc[0]) * 100
-            st.metric("Current Debt-to-Income", f"{dti:.1f}%")
+        st.subheader("💡 Affordability Analysis & Decision")
 
-        st.progress(min(max(pred_emi / (disposable + 1e-5), 0.0), 1.0))
-        st.caption(f"Estimated Installment Commitment: {pred_emi / (disposable + 1e-5) * 100:.1f}% of disposable earnings.")
+        m1, m2, m3 = st.columns(3)
+        with m1:
+            st.metric("Predicted Safe EMI Ceiling", f"₹{pred_max_emi:,.2f}")
+            st.caption("Maximum recommended monthly burden")
+        with m2:
+            st.metric("Proposed Loan Monthly Installment", f"₹{loan_installment:,.2f}")
+            st.caption(f"{n_months} months @ {annual_interest_rate:.1f}% interest")
+        with m3:
+            diff = pred_max_emi - loan_installment
+            if diff >= 0:
+                st.metric("Monthly Affordability Buffer", f"+₹{diff:,.2f}", delta="Comfortable")
+            else:
+                st.metric("Monthly Deficit / Over-commitment", f"-₹{abs(diff):,.2f}", delta="-Deficit", delta_color="inverse")
+
+        # Affordability badge and recommendations
+        if loan_installment <= pred_max_emi:
+            st.success(f"""
+            ✅ **Loan Affordable**: The required installment of **₹{loan_installment:,.2f}** is well within the applicant's safe monthly capacity of **₹{pred_max_emi:,.2f}**.
+            * Remaining monthly buffer: **₹{diff:,.2f}**
+            * Recommended Action: **Approve requested amount**.
+            """)
+        else:
+            suggested_tenure = requested_tenure + 12
+            st.warning(f"""
+            ⚠️ **EMI Stress Warning**: The requested installment of **₹{loan_installment:,.2f}** exceeds the safe limit by **₹{abs(diff):,.2f}**.
+            * **Underwriter Recommendations**:
+              1. Extend repayment tenure to **{suggested_tenure} months** to reduce monthly obligation.
+              2. Or cap the loan amount to **₹{int(pred_max_emi * (( (1+monthly_rate)**n_months - 1 ) / (monthly_rate * (1+monthly_rate)**n_months))):,}**.
+            """)

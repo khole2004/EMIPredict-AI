@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import io
 import os
 import sys
 
@@ -9,40 +10,57 @@ from database import SessionLocal, ApplicantRecord, init_db
 st.set_page_config(page_title="Data Management - EMIPredict AI", page_icon="🗄️", layout="wide")
 
 st.title("🗄️ Applicant Financial Data Management (CRUD)")
-st.markdown("Administrative portal for loan officers to Create, Read, Update, and Delete applicant records.")
+st.markdown("Administrative underwriting portal for loan officers to Create, Read, Update, and Delete applicant records.")
 
-# Ensure DB initialized
 init_db()
-
 db = SessionLocal()
 
 tab_read, tab_create, tab_update, tab_delete = st.tabs([
-    "📋 View Records (Read)",
+    "📋 View & Search Records (Read)",
     "➕ Add Applicant (Create)",
     "✏️ Edit Record (Update)",
     "🗑️ Delete Record (Delete)"
 ])
 
-# 1. READ
+# 1. READ & SEARCH
 with tab_read:
-    st.subheader("Current Stored Applicants")
+    st.subheader("Stored Loan Applications")
     records = db.query(ApplicantRecord).all()
     if not records:
-        st.info("No applicant records stored in database yet. Add one in the 'Add Applicant' tab or evaluate a loan applicant in the Prediction page!")
+        st.info("No applicant records found in database yet. Add one in the 'Add Applicant' tab or run a prediction!")
     else:
-        data = [{
+        df_rec = pd.DataFrame([{
             "ID": r.id,
             "Name": r.customer_name,
             "Age": r.age,
             "Gender": r.gender,
-            "Salary": f"₹{r.monthly_salary:,.0f}",
+            "Salary": r.monthly_salary,
             "Credit Score": r.credit_score,
             "Scenario": r.emi_scenario,
-            "Requested Amt": f"₹{r.requested_amount:,.0f}",
-            "Tenure (Mo)": r.requested_tenure,
-            "Eligibility": r.predicted_eligibility
-        } for r in records]
-        st.dataframe(pd.DataFrame(data), use_container_width=True)
+            "Requested Amt": r.requested_amount,
+            "Tenure": r.requested_tenure,
+            "Eligibility": r.predicted_eligibility,
+            "Max Safe EMI": r.predicted_max_emi
+        } for r in records])
+
+        search_query = st.text_input("🔍 Search by Applicant Name or Scenario:")
+        if search_query:
+            df_rec = df_rec[
+                df_rec['Name'].str.contains(search_query, case=False, na=False) |
+                df_rec['Scenario'].str.contains(search_query, case=False, na=False)
+            ]
+
+        st.dataframe(df_rec, use_container_width=True)
+
+        # CSV Export
+        csv_buf = io.StringIO()
+        df_rec.to_csv(csv_buf, index=False)
+        st.download_button(
+            label="📥 Export Applicants to CSV",
+            data=csv_buf.getvalue(),
+            file_name="stored_loan_applicants.csv",
+            mime="text/csv"
+        )
 
 # 2. CREATE
 with tab_create:
@@ -95,7 +113,8 @@ with tab_create:
                 emi_scenario=scenario,
                 requested_amount=req_amt,
                 requested_tenure=tenure,
-                predicted_eligibility="Pending Assessment"
+                predicted_eligibility="Pending Assessment",
+                predicted_max_emi=0.0
             )
             db.add(new_rec)
             db.commit()

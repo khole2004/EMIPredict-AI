@@ -1,0 +1,65 @@
+{
+    "classification": [
+        {
+            "model": "Logistic Regression",
+            "accuracy": 0.9033,
+            "macro_f1": 0.5965,
+            "roc_auc": 0.9451,
+            "notes": "Interpretable linear baseline"
+        },
+        {
+            "model": "Random Forest Classifier",
+            "accuracy": 0.9435,
+            "macro_f1": 0.6455,
+            "roc_auc": 0.9843,
+            "notes": "Non-linear ensemble trees"
+        },
+        {
+            "model": "XGBoost Classifier (Selected)",
+            "accuracy": 0.9779,
+            "macro_f1": 0.9081,
+            "roc_auc": 0.9951,
+            "notes": "Production gradient boosted decision trees"
+        }
+    ],
+    "regression": [
+        {
+            "model": "Ridge Regression",
+            "rmse": 3854.21,
+            "mae": 2541.09,
+            "r2_score": 0.7506,
+            "mape": 1.1402,
+            "notes": "Regularized L2 linear baseline"
+        },
+        {
+            "model": "Random Forest Regressor",
+            "rmse": 963.41,
+            "mae": 326.72,
+            "r2_score": 0.9844,
+            "mape": 0.0763,
+            "notes": "Ensemble regressor"
+        },
+        {
+            "model": "XGBoost Regressor (Selected)",
+            "rmse": 720.45,
+            "mae": 199.76,
+            "r2_score": 0.9913,
+            "mape": 0.0623,
+            "notes": "Production gradient boosted regressor"
+        }
+    ],
+    "project_metadata": {
+        "dataset_records": 404800,
+        "train_records": 272355,
+        "val_records": 58363,
+        "test_records": 58363,
+        "num_features": 34,
+        "lending_scenarios": [
+            "E-commerce Shopping EMI",
+            "Home Appliances EMI",
+            "Vehicle EMI",
+            "Personal Loan EMI",
+            "Education EMI"
+        ]
+    }
+}
