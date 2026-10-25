@@ -11,11 +11,14 @@ st.markdown("Interactive exploration of financial distributions, DTI ratios, and
 
 DATA_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "processed", "train.parquet")
 RAW_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "raw", "emi_prediction_dataset.csv")
+SAMPLE_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "sample_data.parquet")
 
 @st.cache_data
 def load_sample_data():
     if os.path.exists(DATA_PATH):
         df = pd.read_parquet(DATA_PATH)
+    elif os.path.exists(SAMPLE_PATH):
+        df = pd.read_parquet(SAMPLE_PATH)
     elif os.path.exists(RAW_PATH):
         df = pd.read_csv(RAW_PATH, nrows=50000, low_memory=False)
     else:
