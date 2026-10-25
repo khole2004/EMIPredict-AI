@@ -6,6 +6,7 @@ scikit-learn
 xgboost
 lightgbm
 joblib
+pyarrow
 
 # Experiment Tracking
 mlflow
