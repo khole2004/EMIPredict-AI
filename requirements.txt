@@ -1,0 +1,23 @@
+# Core Data Science & ML
+numpy
+pandas
+scipy
+scikit-learn
+xgboost
+lightgbm
+joblib
+
+# Experiment Tracking
+mlflow
+
+# Visualization & App
+streamlit
+plotly
+matplotlib
+seaborn
+
+# Database & API
+sqlalchemy
+pydantic
+python-dotenv
+requests

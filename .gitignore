@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# Large datasets (handled dynamically by data_loader)
+data/raw/
+data/processed/
+*.parquet
+*.csv
+
+# MLflow runs
+mlruns/
+.trash/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
